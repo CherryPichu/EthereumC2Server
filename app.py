@@ -113,22 +113,44 @@ def get_key():
     web3 = Web3(Web3.HTTPProvider(infura_url))
 
     # txid = request.args.get("txid")
-    txid = "0x19c6e51b1e1c505b47aa52712109331543c6c7e4a1d4af1158d83ce7d9ddac7d"
+    txid = "0xf3c77904244f295a91b27823fcb801e3a3b4444cdb42d2cb33a3eee2df4213d1"
     transaction = web3.eth.get_transaction(txid)
     if transaction is None : 
         return "invalid txid"
-    if db.get("txid") :
+    if db.get(txid) :
         return " already used"
+    
+    
+    # return dict(transaction).__str__()
     
     # 4. 0.03 ETH 이상 보냈으면, 키 반환
     if float(Web3.from_wei(transaction['value'], "ether")) < 0.03 :
-        return "invalid"
+        return "너무 작은 돈을 보냈습니다. 더 많은 돈을 보내야 합니다."
+    
+    # 5. To 가 나인지 확인하기
+    if transaction["to"] != "0x16D72BC0Aba6eB906fF99651A96F920Cb331aD72" :
+        return "it is not my wallet"
+    
+    
+    # 6. 해당 TXID를 True로 저장하기
+    #   3번에서 재사용을 불가능하게 하기 위함
+    db.set(txid, True)
+    
+    
+    
+    # 7. token 에 대한 status 를 true로 만들기
+    #    돈을 지불한 경우, 키를 계속 반환해주기 위함
+    db.get(token)["is_paid"] = True
+    data['status'] = True
+    db.set(token, data)
+    
+    
     
     return float(Web3.from_wei(transaction['value'], "ether")).__str__()
     
-    if data["key"] == None :
-        return "null"
-    return data["key"] if data["is_paid"] == True else "you must have paid for decryption key"
+    # if data["key"] == None :
+    #     return "null"
+    # return data["key"] if data["is_paid"] == True else "you must have paid for decryption key"
 
 
 # 3 일차
